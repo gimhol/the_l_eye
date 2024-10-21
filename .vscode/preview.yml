@@ -1,7 +1,7 @@
 # .vscode/preview.yml
 autoOpen: true # 打开工作空间时是否自动开启所有应用的预览
 apps:
-  - port: 6000 # 应用的端口
+  - port: 10086 # 应用的端口
     run: npm install && npm run start # 应用的启动命令
     root: ./ # 应用的启动目录
     name: LeaferJS # 应用名称
