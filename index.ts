@@ -1,8 +1,7 @@
 import FPS from 'FPS';
-import { App, ITextInputData, Leafer, Pen, Point, PointerEvent, Text } from 'leafer-ui';
+import { App, ITextInputData, Leafer, Pen, Point, PointerEvent, Text, Rect, Group, ResizeEvent } from 'leafer-ui';
 import { Animate } from '@leafer-in/animate'
 import { __Render as Render } from 'Render';
-
 const debug_1 = 1;
 const [app, leafer] = (debug_1 ? () => {
   const app = new App({ view: window });
@@ -13,7 +12,6 @@ const [app, leafer] = (debug_1 ? () => {
   const app = leafer;
   return [app, leafer] as const;
 })()
-
 
 class Smoothing {
   pen: Pen;
@@ -99,10 +97,13 @@ class Solution {
       this.smoothing = null;
     }
   };
+  bottom_clouds = new Group({ x: 0, y: leafer.height - 512 })
   on_pointer_down = (e: PointerEvent) => {
+    this.countdown();
     switch (e.buttons) {
       case 1: this.on_pointer_down_lb_map[this.tool]?.(e); break;
     }
+
   }
   on_pointer_move = (e: PointerEvent) => {
     switch (e.buttons) {
@@ -116,42 +117,82 @@ class Solution {
   }
   countdown_txt_style: () => ITextInputData = () => ({
     fill: 'yellow',
-    stroke: 'red',
-    fontSize: 48,
+    stroke: '#FF5533',
+    fontSize: 72,
     fontWeight: 'bold',
     opacity: 0,
     textAlign: 'center',
     verticalAlign: 'middle',
+    strokeWidth: 5,
     x: app.width! / 2,
     y: app.height! / 2
   })
-  countdown_txt_arr = [
+  countdown_texts = [
     new Text({ text: '三', ...this.countdown_txt_style() }),
     new Text({ text: '二', ...this.countdown_txt_style() }),
     new Text({ text: '一', ...this.countdown_txt_style() }),
     new Text({ text: '　开始！', ...this.countdown_txt_style() }),
   ]
-  countdown_txt_anim = this.countdown_txt_arr.map((txt, i) => new Animate(
-    txt,
-    [
-      { scale: 2, opacity: 0, },
-      { scale: 1, opacity: 1, y: txt.y + 20, },
-      {}, {},
-      { scale: 2, opacity: 0 }
-    ],
-    { duration: 1, delay: ++i }
-  ))
+  sky: Rect | null;
+  bottom_clouds_anim: Animate | null;
   countdown() {
-    for (const anim of this.countdown_txt_anim) {
-      anim.play()
+    this.countdown_texts.map((txt, i) => new Animate(
+      txt,
+      [
+        { scale: 2, opacity: 0, },
+        { scale: 1, opacity: 1, y: txt.y + 20, },
+        {}, {},
+        { scale: 2, opacity: 0 }
+      ],
+      { duration: 1, delay: (i - 1) }
+    ))
+  }
+  init() {
+    for (let i = -5; i < 10; ++i) {
+      const cloud = new Rect({
+        x: i * 512,
+        fill: {
+          type: 'image',
+          url: '/image/bottom_cloud.png',
+        }
+      })
+      this.bottom_clouds.add(cloud)
+    }
+    this.sky = new Rect({
+      width: leafer.width,
+      height: leafer.height,
+      fill: {
+        type: 'image',
+        url: '/image/sunset_sky.png',
+      }
+    })
+    this.bottom_clouds_anim = new Animate(this.bottom_clouds, { x: 512 }, { duration: 10, loop: true, easing: 'linear' })
+    leafer.add(this.sky)
+    leafer.add(this.bottom_clouds)
+    leafer.add(this.ups_txt);
+    leafer.add(this.countdown_texts);
+    this.on_resize()
+  }
+  on_resize = () => {
+    this.bottom_clouds.y = leafer.height - 512;
+    this.bottom_clouds.scale = {
+      x: 1,
+      y: 1,
+    };
+    this.sky.width = leafer.width;
+    this.sky.height = leafer.height;
+
+    for (const txt of this.countdown_texts) {
+      txt.x = leafer.width / 2;
+      txt.y = leafer.height / 2;
     }
   }
   start() {
     app.on(PointerEvent.DOWN, this.on_pointer_down)
     app.on(PointerEvent.MOVE, this.on_pointer_move)
     app.on(PointerEvent.UP, this.on_pointer_up)
+    app.on(ResizeEvent.RESIZE, this.on_resize)
     this.render_id = Render.add(this.render)
-    leafer.add(this.ups_txt);
   }
   stop() {
     app.off(PointerEvent.DOWN, this.on_pointer_down)
@@ -167,4 +208,7 @@ class Solution {
 }
 
 const solution = new Solution();
+solution.init();
 solution.start();
+
+
