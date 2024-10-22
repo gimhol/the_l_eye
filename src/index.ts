@@ -1,6 +1,8 @@
 import { Animate } from '@leafer-in/animate';
+import '@leafer-in/motion-path';
 import { App, Group, ITextInputData, Leafer, Line, PointerEvent, Rect, ResizeEvent, Text } from 'leafer-ui';
 import FPS from './FPS';
+import { Loong } from './Loong';
 import { __Render as Render } from './Render';
 import { Smoothing } from './Smoothing';
 
@@ -14,10 +16,10 @@ const [_app, _leafer] = (1 ? () => {
   return [app, leafer] as const;
 })()
 
-enum ToolEnum {
+export enum ToolEnum {
   Pen = 1
 }
-class Solution {
+export class Solution {
   app = _app
   leafer = _leafer
   render_id: number = 0;
@@ -40,17 +42,12 @@ class Solution {
   on_pointer_up_lb_map: Record<ToolEnum, (e: PointerEvent) => void> = {
     [ToolEnum.Pen]: (e: PointerEvent) => {
       this.draw_pen.add_dot(e.x, e.y);
-      this.draw_pen.close();
-
-      const motion_line = new Line({
-        motionPath: true,
-        points: this.draw_pen.dots,
-        stroke: 'red', windingRule: 'nonzero', strokeWidth: 4, strokeJoin: 'round', strokeCap: 'round'
-      })
-      this.leafer.add(motion_line)
-      this.leafer.remove(this.draw_pen.pen)
-      const a = motion_line.getMotionPoint(0);
-      console.log(a)
+      // this.draw_pen.close()
+      if (this.draw_pen.dots.length > 5) {
+        const loong = new Loong(this, this.draw_pen);
+        this.loongs.push(loong)
+      }
+      this.leafer.remove(this.draw_pen.pen);
       this.draw_pen = null;
     }
   };
@@ -92,6 +89,7 @@ class Solution {
     new Text({ text: '一', ...this.countdown_txt_style() }),
     new Text({ text: '　开始！', ...this.countdown_txt_style() }),
   ]
+  loongs: Loong[] = [];
   countdown() {
     this.countdown_texts.map((txt, i) => new Animate(
       txt,
@@ -148,7 +146,7 @@ class Solution {
     this.app.on(PointerEvent.MOVE, this.on_pointer_move)
     this.app.on(PointerEvent.UP, this.on_pointer_up)
     this.app.on(ResizeEvent.RESIZE, this.on_resize)
-    this.render_id = Render.add(this.render)
+    this.render_id = Render.add(this.update)
   }
   stop() {
     this.app.off(PointerEvent.DOWN, this.on_pointer_down)
@@ -157,9 +155,12 @@ class Solution {
     this.leafer.remove(this.ups_txt);
     Render.del(this.render_id);
   }
-  render = (dt: number) => {
+  update = (dt: number) => {
     this.ups.update(dt);
     this.ups_txt.text = 'UPS: ' + this.ups.value.toFixed(1);
+    for (const lonng of this.loongs) {
+      lonng.update(dt)
+    }
   }
 }
 
