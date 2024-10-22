@@ -7,8 +7,6 @@ import copy from 'rollup-plugin-copy'
 import livereload from 'rollup-plugin-livereload'
 import serve from 'rollup-plugin-serve'
 
-const port = 10086 // visit http://localhost:6000
-
 export default {
   input: 'src/index.ts',
   output: {
@@ -41,6 +39,6 @@ export default {
     }),
     copy({ targets: [{ src: 'public/*', dest: 'dist/' }] }),
     livereload(),
-    serve({ contentBase: ['dist/'], port })
+    serve({ contentBase: ['dist/'], port: 10086 })
   ]
 }
