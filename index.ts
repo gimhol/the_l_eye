@@ -97,7 +97,9 @@ class Solution {
       this.smoothing = null;
     }
   };
+  sky: Rect | null;
   bottom_clouds = new Group({ x: 0, y: leafer.height - 512 })
+  bottom_clouds_anim: Animate | null;
   on_pointer_down = (e: PointerEvent) => {
     this.countdown();
     switch (e.buttons) {
@@ -133,8 +135,6 @@ class Solution {
     new Text({ text: '一', ...this.countdown_txt_style() }),
     new Text({ text: '　开始！', ...this.countdown_txt_style() }),
   ]
-  sky: Rect | null;
-  bottom_clouds_anim: Animate | null;
   countdown() {
     this.countdown_texts.map((txt, i) => new Animate(
       txt,
