@@ -1,6 +1,6 @@
 import { Animate } from '@leafer-in/animate';
 import '@leafer-in/motion-path';
-import { App, Group, ITextInputData, Leafer, Line, PointerEvent, Rect, ResizeEvent, Text } from 'leafer-ui';
+import { App, Group, ITextInputData, Leafer, PointerEvent, Rect, ResizeEvent, Text } from 'leafer-ui';
 import FPS from './FPS';
 import { Loong } from './Loong';
 import { __Render as Render } from './Render';
@@ -24,7 +24,7 @@ export class Solution {
   leafer = _leafer
   render_id: number = 0;
   ups = new FPS();
-  ups_txt = new Text()
+  ups_txt = new Text({ opacity: 0.1 })
   draw_pen: Smoothing | null;
   tool: ToolEnum = ToolEnum.Pen;
   on_pointer_down_lb_map: Record<ToolEnum, (e: PointerEvent) => void> = {
@@ -42,7 +42,6 @@ export class Solution {
   on_pointer_up_lb_map: Record<ToolEnum, (e: PointerEvent) => void> = {
     [ToolEnum.Pen]: (e: PointerEvent) => {
       this.draw_pen.add_dot(e.x, e.y);
-      // this.draw_pen.close()
       if (this.draw_pen.dots.length > 5) {
         const loong = new Loong(this, this.draw_pen);
         this.loongs.push(loong)
@@ -52,8 +51,11 @@ export class Solution {
     }
   };
   sky: Rect | null;
-  bottom_clouds = new Group({ x: 0, y: this.leafer.height - 512 })
-  bottom_clouds_anim: Animate | null;
+  bottom_clouds_1 = new Group({ x: 0, y: this.leafer.height - 512 })
+  bottom_clouds_2 = new Group({ x: 0, y: this.leafer.height - 1024 })
+  bottom_clouds_anim_1: Animate | null = null;
+  bottom_clouds_anim_2: Animate | null = null;
+  loongs: Loong[] = [];
   on_pointer_down = (e: PointerEvent) => {
     switch (e.buttons) {
       case 1:
@@ -89,7 +91,6 @@ export class Solution {
     new Text({ text: '一', ...this.countdown_txt_style() }),
     new Text({ text: '　开始！', ...this.countdown_txt_style() }),
   ]
-  loongs: Loong[] = [];
   countdown() {
     this.countdown_texts.map((txt, i) => new Animate(
       txt,
@@ -104,14 +105,24 @@ export class Solution {
   }
   init() {
     for (let i = -5; i < 10; ++i) {
-      const cloud = new Rect({
+      this.bottom_clouds_1.add(new Rect({
         x: i * 512,
         fill: {
           type: 'image',
           url: '/image/bottom_cloud.png',
         }
-      })
-      this.bottom_clouds.add(cloud)
+      }))
+    }
+    for (let i = -5; i < 10; ++i) {
+      this.bottom_clouds_2.add(new Rect({
+        x: i * 512,
+        scaleX: -1,
+        opacity: 0.5,
+        fill: {
+          type: 'image',
+          url: '/image/bottom_cloud.png',
+        }
+      }))
     }
     this.sky = new Rect({
       width: this.leafer.width,
@@ -121,16 +132,33 @@ export class Solution {
         url: '/image/sunset_sky.png',
       }
     })
-    this.bottom_clouds_anim = new Animate(this.bottom_clouds, { x: 512 }, { duration: 10, loop: true, easing: 'linear' })
+    this.bottom_clouds_anim_1 = new Animate(
+      this.bottom_clouds_1, [
+      { x: 512, opacity: 1 },
+      { x: 1024, opacity: 0.5 },
+      { x: 1536, opacity: 1 }
+    ], { duration: 10, loop: true, easing: 'linear' })
+    this.bottom_clouds_anim_2 = new Animate(
+      this.bottom_clouds_2, [
+      { x: 512 * 1.5, opacity: 0.8 },
+      { x: 1024 * 1.5, opacity: 0.1 },
+      { x: 1536 * 1.5, opacity: 0.8 }
+    ], { duration: 25, loop: true, easing: 'linear' })
     this.leafer.add(this.sky)
-    this.leafer.add(this.bottom_clouds)
+    this.leafer.add(this.bottom_clouds_2)
+    this.leafer.add(this.bottom_clouds_1)
     this.leafer.add(this.ups_txt);
     this.leafer.add(this.countdown_texts);
     this.on_resize()
   }
   on_resize = () => {
-    this.bottom_clouds.y = this.leafer.height - 512;
-    this.bottom_clouds.scale = {
+    this.bottom_clouds_2.y = this.leafer.height - 512 * 1.5;
+    this.bottom_clouds_2.scale = {
+      x: 1 * 1.5,
+      y: 1 * 1.5,
+    };
+    this.bottom_clouds_1.y = this.leafer.height - 512;
+    this.bottom_clouds_1.scale = {
       x: 1,
       y: 1,
     };
