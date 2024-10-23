@@ -5,8 +5,8 @@ export class Smoothing {
   first_dot: Point | null = null;
   prev_dot_a: Point | null = null;
   prev_dot_b: Point | null = null;
-  line_factor = 0.3;
-  smooth_factor = 0.3;
+  line_factor = 0.5;
+  smooth_factor = 0.5;
   min_curve_distance = 10;
   min_line_distance = 5;
   dots: Point[] = [];
@@ -15,7 +15,7 @@ export class Smoothing {
     this.pen.setStyle({ stroke: 'red', windingRule: 'nonzero', strokeWidth: 4, strokeJoin: 'round', strokeCap: 'round' })
   }
   add_dot(x: number, y: number, type?: 'last') {
-    if (!this.first_dot) {
+    if (!this.first_dot || !this.prev_dot_a || !this.prev_dot_b) {
       this.dots = [new Point(x, y)]
       this.first_dot = new Point({ x, y })
       this.prev_dot_a = this.first_dot.clone();
@@ -56,6 +56,7 @@ export class Smoothing {
     }
   }
   close() {
+    if (!this.first_dot) return;
     this.add_dot(this.first_dot.x, this.first_dot.y, 'last');
     this.pen.closePath()
   }
