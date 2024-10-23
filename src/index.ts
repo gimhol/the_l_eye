@@ -278,11 +278,16 @@ export class Solution {
         if (this.loong_countdown <= 0) {
           this.loong_countdown = this.loong_interval;
 
-          const diff = this.game_max_mseconds - this.remain_mseconds;
           const what = Math.random() * this.game_max_mseconds;
-          const smoothing = what < diff ?
-            this.create_ssssss_smoothing_motion() :
-            this.create_simple_smoothing_motion();
+          let methods: () => Smoothing;
+          if (what < this.remain_mseconds / 2) {
+            methods = this.create_a_motion
+          } else if (what < this.remain_mseconds) {
+            methods = this.create_b_motion
+          } else {
+            methods = this.create_c_motion
+          }
+          const smoothing = methods();
 
           const loong = new Loong(this);
           loong.speed = this.loong_speed
@@ -303,7 +308,7 @@ export class Solution {
         break;
     }
   }
-  create_ssssss_smoothing_motion = () => {
+  create_c_motion = () => {
     const w = this.width;
     const h = this.height;
     const y = h / 4 + Math.random() * h / 2;
@@ -316,19 +321,19 @@ export class Solution {
       while (x < w + 200) {
         i = (i + 1) % 2
         x += 200
-        smoothing.add_dot(x, y + (i - 0.5) * 400);
+        smoothing.add_dot(x, y + (i - 0.5) * Math.random() * 400);
       }
     } else {
       while (x > - 200) {
         i = (i + 1) % 2
         x -= 200
-        smoothing.add_dot(x, y + (i - 0.5) * 400);
+        smoothing.add_dot(x, y + (i - 0.5) * Math.random() * 400);
       }
     }
     smoothing.add_dot(x, y, 'last');
     return smoothing;
   }
-  create_simple_smoothing_motion = () => {
+  create_a_motion = () => {
     const w = this.width;
     const h = this.height;
     const start_y = h / 4 + Math.random() * h / 2;
@@ -339,6 +344,31 @@ export class Solution {
     smoothing.add_dot(left_to_right ? (-200) : (w + 200), start_y);
     smoothing.add_dot(w / 2, center_y);
     smoothing.add_dot(left_to_right ? (w + 200) : -200, end_y, 'last');
+    return smoothing;
+  }
+  create_b_motion = () => {
+    const w = this.width;
+    const h = this.height;
+    const y = h / 4 + Math.random() * h / 2;
+    const left_to_right = Math.random() > 0.5;
+    const smoothing = new Smoothing();
+    let x = left_to_right ? (-200) : (w + 200)
+    smoothing.add_dot(x, y);
+    let i: 0 | 1 = 0;
+    if (left_to_right) {
+      while (x < w + 200) {
+        i = (i + 1) % 2
+        x += 200
+        smoothing.add_dot(x, y + (i - 0.5) * 300);
+      }
+    } else {
+      while (x > - 200) {
+        i = (i + 1) % 2
+        x -= 200
+        smoothing.add_dot(x, y + (i - 0.5) * 300);
+      }
+    }
+    smoothing.add_dot(x, y, 'last');
     return smoothing;
   }
   on_loong_hit(_loong: Loong) {

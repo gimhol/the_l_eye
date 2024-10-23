@@ -2,13 +2,13 @@ import { ILineInputData, Line, PointerEvent, Rect } from "leafer-ui";
 import { type Solution } from "src";
 import { Smoothing } from "./Smoothing";
 enum LoongState {
-  Normal = 1,
+  Idle = 0,
+  Moving = 1,
   Leaving = 2,
 }
 const line_input_data: Partial<ILineInputData> = {
   motionPath: true,
   stroke: 'red',
-  windingRule: 'nonzero',
   strokeWidth: 4,
   strokeJoin: 'round',
   strokeCap: 'round',
@@ -40,8 +40,8 @@ export class Loong {
   bodies: Rect[] = []
   tail = new Rect({ x: -1000, y: -1000, width: 20, height: 20, around: 'center', fill: 'red' })
   solution: Solution;
-  state = LoongState.Normal;
-  next_state = LoongState.Normal;
+  state = LoongState.Moving;
+  next_state = LoongState.Moving;
   set_normal_motion_line(...args: ConstructorParameters<typeof Line>) {
     if (this.normal_motion_line)
       this.solution.leafer.remove(this.normal_motion_line);
@@ -101,7 +101,7 @@ export class Loong {
       this.solution.leafer.remove(this.leaving_motion_line);
   }
   get_motion_point(to: number) {
-    if (this.state === LoongState.Normal) {
+    if (this.state === LoongState.Moving) {
       if (this.loop) {
         while (to < 0) {
           to += this.normal_motion_total
@@ -135,7 +135,7 @@ export class Loong {
   }
   calc_length_offset(src: number, offset: number) {
     let dst = src + offset;
-    if (this.state === LoongState.Normal && this.loop) {
+    if (this.state === LoongState.Moving && this.loop) {
       if (dst < 0)
         dst = (this.normal_motion_total + dst) % this.normal_motion_total;
       if (dst > this.normal_motion_total)
@@ -186,16 +186,20 @@ export class Loong {
     if (this.next_state !== this.state) {
       // state leave job
       switch (this.state) { }
+
       this.state = this.next_state;
+
       // state enter job
       switch (this.state) {
         case LoongState.Leaving:
           this.leave();
+          setTimeout(() => this.remove_self(), 2000)
           break;
       }
     }
     switch (this.state) {
-      case LoongState.Normal: {
+      case LoongState.Moving: {
+        this.update_flying(dt)
         if (this.motion_progress >= 2 * this.normal_motion_total) {
           this.remove_self()
         }
@@ -203,10 +207,12 @@ export class Loong {
       }
       case LoongState.Leaving: {
         this.speed += 1 * dt;
-        setTimeout(() => this.remove_self(), 2000)
+        this.update_flying(dt)
         break;
       }
     }
+  }
+  update_flying(dt: number) {
     this.motion_progress += this.speed * dt / 1000;
     if (this.loop) this.motion_progress = this.motion_progress % this.normal_motion_total;
     this.fly_to(this.motion_progress)
@@ -237,7 +243,7 @@ export class Loong {
     this.solution.on_loong_hit(this)
   }
   on_pointer_down_head = () => {
-    if (this.state === LoongState.Normal)
+    if (this.state === LoongState.Moving)
       this.next_state = LoongState.Leaving
   }
 }
