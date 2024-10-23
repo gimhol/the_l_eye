@@ -1,4 +1,4 @@
-import { Pen, Point } from "leafer-ui";
+import { IPenInputData, Pen, Point } from "leafer-ui";
 
 export class Smoothing {
   pen: Pen;
@@ -10,8 +10,8 @@ export class Smoothing {
   min_curve_distance = 10;
   min_line_distance = 5;
   dots: Point[] = [];
-  constructor() {
-    this.pen = new Pen();
+  constructor(data?: IPenInputData) {
+    this.pen = new Pen(data);
     this.pen.setStyle({ stroke: 'red', windingRule: 'nonzero', strokeWidth: 4, strokeJoin: 'round', strokeCap: 'round' })
   }
   add_dot(x: number, y: number, type?: 'last') {

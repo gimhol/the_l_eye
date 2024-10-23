@@ -49,19 +49,25 @@ export class Solution {
     verticalAlign: 'top',
     visible: false,
   })
-
-  remain_mseconds = 60 * 1000;
+  game_max_time = 60 * 1000
+  remain_mseconds = this.game_max_time;
   remain_seconds_txt = new Text({
     ...countdown_txt_style,
     opacity: 1,
     fontSize: 36,
-    text: '倒计时: 60秒',
     textAlign: 'right',
     verticalAlign: 'top',
     visible: false,
   })
   draw_pen: Smoothing | null = null;
   game_state: GameState = GameState.Idle;
+  max_loong_speed = 1000;
+  min_loong_speed = 300;
+  loong_speed = this.min_loong_speed;
+  max_loong_interval = 1000;
+  min_loong_interval = 500;
+  loong_interval = this.max_loong_interval
+  loong_countdown = 0;
   on_pointer_down_lb_map: { [x in GameState]?: (e: PointerEvent) => void } = {
     [GameState.DrawPath]: (e: PointerEvent) => {
       this.draw_pen = new Smoothing
@@ -84,7 +90,8 @@ export class Solution {
       if (!this.draw_pen) return;
       this.draw_pen.add_dot(e.x, e.y);
       if (this.draw_pen.dots.length > 5) {
-        const loong = new Loong(this, this.draw_pen);
+        const loong = new Loong(this);
+        loong.read_smoothing_to_normal(this.draw_pen)
         this.loongs.push(loong);
       }
       this.leafer.remove(this.draw_pen.pen);
@@ -224,6 +231,10 @@ export class Solution {
     this.leafer.remove(this.ups_txt);
     Render.del(this.render_id);
   }
+
+  update_game_remain_seconds() {
+    this.remain_seconds_txt.text = `倒计时: ${(this.remain_mseconds / 1000).toFixed(0)}秒`;;
+  }
   set_game_state(state: GameState) {
     switch (this.game_state) {
       case GameState.Idle: break;
@@ -237,11 +248,17 @@ export class Solution {
       case GameState.Idle:
         break;
       case GameState.Running:
+        this.loong_countdown = 0;
+        this.loong_interval = this.max_loong_interval;
+        this.remain_mseconds = this.game_max_time;
         this.remain_seconds_txt.visible = true;
+        this.update_game_remain_seconds();
         break;
       case GameState.DrawPath: break;
     }
   }
+  get width() { return this.leafer.width || 0 }
+  get height() { return this.leafer.height || 0 }
   update = (dt: number) => {
     this.ups.update(dt);
     this.ups_txt.text = 'UPS: ' + this.ups.value.toFixed(1);
@@ -251,8 +268,32 @@ export class Solution {
     switch (this.game_state) {
       case GameState.Idle: break;
       case GameState.Running:
+        this.loong_countdown -= dt;
+        if (this.loong_countdown < 0) {
+          this.loong_countdown = this.loong_interval;
+          const w = this.width;
+          const h = this.height;
+          const start_y = h / 4 + Math.random() * h / 2;
+          const center_y = Math.random() * h;
+          const end_y = Math.random() * h;
+          const left_to_right = Math.random() > 0.5;
+          this.loong_speed += (this.max_loong_speed - this.min_loong_speed) / 15000 * dt;
+          const loong = new Loong(this);
+          loong.speed = this.loong_speed = Math.min(this.max_loong_speed, this.loong_speed)
+          const smoothing = new Smoothing();
+          smoothing.add_dot(left_to_right ? (-200) : (w + 200), start_y)
+          smoothing.add_dot(w / 2, center_y)
+          smoothing.add_dot(left_to_right ? (w + 200) : -200, end_y, 'last')
+          loong.read_smoothing_to_normal(smoothing);
+          this.loongs.push(loong)
+        }
+        this.loong_interval -= (this.max_loong_interval - this.min_loong_interval) / 15000 * dt;
+        this.loong_interval = Math.max(this.min_loong_interval, this.loong_interval)
+
         this.remain_mseconds -= dt;
-        this.remain_seconds_txt.text = `倒计时: ${(this.remain_mseconds / 1000).toFixed(0)}秒`;
+        this.update_game_remain_seconds();
+        if (this.remain_mseconds <= 0)
+          this.set_game_state(GameState.Idle)
         break;
       case GameState.DrawPath:
         break;
