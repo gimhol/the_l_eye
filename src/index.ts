@@ -3,7 +3,6 @@ import '@leafer-in/motion-path';
 import { App, Group, ITextInputData, Leafer, PointerEvent, Rect, ResizeEvent, Text } from 'leafer-ui';
 import FPS from './FPS';
 import { Loong } from './Loong';
-import { __Render as Render } from './Render';
 import { Smoothing } from './Smoothing';
 
 const [_app, _leafer] = (1 ? () => {
@@ -36,7 +35,7 @@ export enum GameState {
 export class Solution {
   app = _app
   leafer = _leafer
-  render_id: number = 0;
+  update_id: number = 0;
   ups = new FPS();
   ups_txt = new Text({ opacity: 0.1 })
   score = 0;
@@ -49,8 +48,8 @@ export class Solution {
     verticalAlign: 'top',
     visible: false,
   })
-  game_max_time = 60 * 1000
-  remain_mseconds = this.game_max_time;
+  game_max_mseconds = 60 * 1000
+  remain_mseconds = this.game_max_mseconds;
   remain_seconds_txt = new Text({
     ...countdown_txt_style,
     opacity: 1,
@@ -65,7 +64,7 @@ export class Solution {
   min_loong_speed = 300;
   loong_speed = this.min_loong_speed;
   max_loong_interval = 1000;
-  min_loong_interval = 500;
+  min_loong_interval = 250;
   loong_interval = this.max_loong_interval
   loong_countdown = 0;
   on_pointer_down_lb_map: { [x in GameState]?: (e: PointerEvent) => void } = {
@@ -222,14 +221,20 @@ export class Solution {
     this.app.on(PointerEvent.MOVE, this.on_pointer_move)
     this.app.on(PointerEvent.UP, this.on_pointer_up)
     this.app.on(ResizeEvent.RESIZE, this.on_resize)
-    this.render_id = Render.add(this.update)
+    let prev_time = Date.now();
+    setInterval(() => {
+      const curr_time = Date.now();
+      this.update(curr_time - prev_time);
+      prev_time = curr_time;
+    }, 1000 / 60)
+    // this.update_id = Render.add(this.update)
   }
   stop() {
     this.app.off(PointerEvent.DOWN, this.on_pointer_down)
     this.app.off(PointerEvent.MOVE, this.on_pointer_move)
     this.app.off(PointerEvent.UP, this.on_pointer_up)
     this.leafer.remove(this.ups_txt);
-    Render.del(this.render_id);
+    clearInterval(this.update_id)
   }
 
   update_game_remain_seconds() {
@@ -250,7 +255,7 @@ export class Solution {
       case GameState.Running:
         this.loong_countdown = 0;
         this.loong_interval = this.max_loong_interval;
-        this.remain_mseconds = this.game_max_time;
+        this.remain_mseconds = this.game_max_mseconds;
         this.remain_seconds_txt.visible = true;
         this.update_game_remain_seconds();
         break;
@@ -269,24 +274,23 @@ export class Solution {
       case GameState.Idle: break;
       case GameState.Running:
         this.loong_countdown -= dt;
-        if (this.loong_countdown < 0) {
+
+        if (this.loong_countdown <= 0) {
           this.loong_countdown = this.loong_interval;
-          const w = this.width;
-          const h = this.height;
-          const start_y = h / 4 + Math.random() * h / 2;
-          const center_y = Math.random() * h;
-          const end_y = Math.random() * h;
-          const left_to_right = Math.random() > 0.5;
-          this.loong_speed += (this.max_loong_speed - this.min_loong_speed) / 15000 * dt;
+
+          const diff = this.game_max_mseconds - this.remain_mseconds;
+          const what = Math.random() * this.game_max_mseconds;
+          const smoothing = what < diff ?
+            this.create_ssssss_smoothing_motion() :
+            this.create_simple_smoothing_motion();
+
           const loong = new Loong(this);
-          loong.speed = this.loong_speed = Math.min(this.max_loong_speed, this.loong_speed)
-          const smoothing = new Smoothing();
-          smoothing.add_dot(left_to_right ? (-200) : (w + 200), start_y)
-          smoothing.add_dot(w / 2, center_y)
-          smoothing.add_dot(left_to_right ? (w + 200) : -200, end_y, 'last')
+          loong.speed = this.loong_speed
           loong.read_smoothing_to_normal(smoothing);
           this.loongs.push(loong)
         }
+        this.loong_speed += (this.max_loong_speed - this.min_loong_speed) / 15000 * dt;
+        this.loong_speed = Math.min(this.max_loong_speed, this.loong_speed)
         this.loong_interval -= (this.max_loong_interval - this.min_loong_interval) / 15000 * dt;
         this.loong_interval = Math.max(this.min_loong_interval, this.loong_interval)
 
@@ -298,6 +302,44 @@ export class Solution {
       case GameState.DrawPath:
         break;
     }
+  }
+  create_ssssss_smoothing_motion = () => {
+    const w = this.width;
+    const h = this.height;
+    const y = h / 4 + Math.random() * h / 2;
+    const left_to_right = Math.random() > 0.5;
+    const smoothing = new Smoothing();
+    let x = left_to_right ? (-200) : (w + 200)
+    smoothing.add_dot(x, y);
+    let i: 0 | 1 = 0;
+    if (left_to_right) {
+      while (x < w + 200) {
+        i = (i + 1) % 2
+        x += 200
+        smoothing.add_dot(x, y + (i - 0.5) * 400);
+      }
+    } else {
+      while (x > - 200) {
+        i = (i + 1) % 2
+        x -= 200
+        smoothing.add_dot(x, y + (i - 0.5) * 400);
+      }
+    }
+    smoothing.add_dot(x, y, 'last');
+    return smoothing;
+  }
+  create_simple_smoothing_motion = () => {
+    const w = this.width;
+    const h = this.height;
+    const start_y = h / 4 + Math.random() * h / 2;
+    const center_y = Math.random() * h;
+    const end_y = Math.random() * h;
+    const left_to_right = Math.random() > 0.5;
+    const smoothing = new Smoothing();
+    smoothing.add_dot(left_to_right ? (-200) : (w + 200), start_y);
+    smoothing.add_dot(w / 2, center_y);
+    smoothing.add_dot(left_to_right ? (w + 200) : -200, end_y, 'last');
+    return smoothing;
   }
   on_loong_hit(_loong: Loong) {
     this.score += 1;
