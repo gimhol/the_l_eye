@@ -98,11 +98,21 @@ export class Solution {
     }
   };
   sky: Rect | null = null;
-  bottom_clouds_1 = new Group({ x: 0, y: (this.leafer.height || 0) - 512 })
-  bottom_clouds_2 = new Group({ x: 0, y: (this.leafer.height || 0) - 1024 })
+  bottom_clouds_1 = new Group({ x: 0, y: this.height - 512 })
   bottom_clouds_anim_1: Animate | null = null;
+  bottom_clouds_2 = new Group({ x: 0, y: this.height - 1024 })
   bottom_clouds_anim_2: Animate | null = null;
+  top_clouds_1 = new Group({ x: 0, y: 0 })
+  top_clouds_anim_1: Animate | null = null;
   loongs: Loong[] = [];
+  get width() { return this.leafer.width || 0 }
+  get height() { return this.leafer.height || 0 }
+  countdown_texts = [
+    new Text({ text: '三', ...countdown_txt_style }),
+    new Text({ text: '二', ...countdown_txt_style }),
+    new Text({ text: '一', ...countdown_txt_style }),
+    new Text({ text: '　开始！', ...countdown_txt_style }),
+  ]
   on_pointer_down = (e: PointerEvent) => {
     switch (e.buttons) {
       case 1:
@@ -120,12 +130,6 @@ export class Solution {
       case 1: this.on_pointer_up_lb_map[this.game_state]?.(e); break;
     }
   }
-  countdown_texts = [
-    new Text({ text: '三', ...countdown_txt_style }),
-    new Text({ text: '二', ...countdown_txt_style }),
-    new Text({ text: '一', ...countdown_txt_style }),
-    new Text({ text: '　开始！', ...countdown_txt_style }),
-  ]
   countdown() {
     this.set_game_state(GameState.Countdown);
     this.countdown_texts.map((txt, i) => new Animate(
@@ -141,7 +145,19 @@ export class Solution {
     setTimeout(() => this.set_game_state(GameState.Running), 3000)
   }
   init() {
-    for (let i = -5; i < 10; ++i) {
+    for (let i = -3; i < 3; ++i) {
+      this.top_clouds_1.add(new Rect({
+        x: i * 512,
+        y: 512 * 0.75,
+        scaleX: -1,
+        scaleY: -0.75,
+        fill: {
+          type: 'image',
+          url: '/image/bottom_cloud.png',
+        }
+      }))
+    }
+    for (let i = -3; i < 5; ++i) {
       this.bottom_clouds_1.add(new Rect({
         x: i * 512,
         fill: {
@@ -150,7 +166,7 @@ export class Solution {
         }
       }))
     }
-    for (let i = -5; i < 10; ++i) {
+    for (let i = -3; i < 5; ++i) {
       this.bottom_clouds_2.add(new Rect({
         x: i * 512,
         scaleX: -1,
@@ -169,21 +185,28 @@ export class Solution {
         url: '/image/sunset_sky.png',
       }
     })
+    this.top_clouds_anim_1 = new Animate(
+      this.top_clouds_1, [
+      { x: 512 * 1, opacity: 0.5 },
+      { x: 512 * 2, opacity: 0.25 },
+      { x: 512 * 3, opacity: 0.5 }
+    ], { duration: 30, loop: true, easing: 'linear' })
     this.bottom_clouds_anim_1 = new Animate(
       this.bottom_clouds_1, [
-      { x: 512, opacity: 1 },
-      { x: 1024, opacity: 0.5 },
-      { x: 1536, opacity: 1 }
+      { x: 512 * 1, opacity: 0.9 },
+      { x: 512 * 2, opacity: 0.4 },
+      { x: 512 * 3, opacity: 0.9 }
     ], { duration: 10, loop: true, easing: 'linear' })
     this.bottom_clouds_anim_2 = new Animate(
       this.bottom_clouds_2, [
-      { x: 512 * 1.5, opacity: 0.8 },
-      { x: 1024 * 1.5, opacity: 0.1 },
-      { x: 1536 * 1.5, opacity: 0.8 }
+      { x: 512 * 1 * 1.5, opacity: 0.8 },
+      { x: 512 * 2 * 1.5, opacity: 0.1 },
+      { x: 512 * 3 * 1.5, opacity: 0.8 }
     ], { duration: 25, loop: true, easing: 'linear' })
     this.leafer.add(this.sky)
     this.leafer.add(this.bottom_clouds_2)
     this.leafer.add(this.bottom_clouds_1)
+    this.leafer.add(this.top_clouds_1)
     this.leafer.add(this.ups_txt);
     this.leafer.add(this.countdown_texts);
     this.leafer.add(this.score_txt)
@@ -192,7 +215,6 @@ export class Solution {
   }
   on_resize = () => {
     const { width: w = 0, height: h = 0 } = this.leafer;
-
     this.bottom_clouds_2.y = h - 512 * 1.5;
     this.bottom_clouds_2.scale = {
       x: 1 * 1.5,
@@ -203,6 +225,8 @@ export class Solution {
       x: 1,
       y: 1,
     };
+    this.top_clouds_1.y = 0;
+    this.top_clouds_1.scale = { x: 1, y: 1, };
     if (this.sky) {
       this.sky.width = w;
       this.sky.height = h;
@@ -236,7 +260,6 @@ export class Solution {
     this.leafer.remove(this.ups_txt);
     clearInterval(this.update_id)
   }
-
   update_game_remain_seconds() {
     this.remain_seconds_txt.text = `倒计时: ${(this.remain_mseconds / 1000).toFixed(0)}秒`;;
   }
@@ -262,8 +285,6 @@ export class Solution {
       case GameState.DrawPath: break;
     }
   }
-  get width() { return this.leafer.width || 0 }
-  get height() { return this.leafer.height || 0 }
   update = (dt: number) => {
     this.ups.update(dt);
     this.ups_txt.text = 'UPS: ' + this.ups.value.toFixed(1);
@@ -380,5 +401,3 @@ export class Solution {
 const solution = new Solution();
 solution.init();
 solution.start();
-
-
