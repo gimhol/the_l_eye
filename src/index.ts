@@ -46,7 +46,7 @@ export class Solution {
     opacity: 1,
     fontSize: 36,
     text: '已点睛: 0',
-    textAlign: 'left',
+    textAlign: 'center',
     verticalAlign: 'top',
     visible: false,
   })
@@ -290,7 +290,7 @@ export class Solution {
     }
     this.btn_start_game.x = w / 2;
     this.btn_start_game.y = h / 2;
-    this.score_txt.x = 10;
+    this.score_txt.x = w / 2;
     this.score_txt.y = 10;
     this.remain_seconds_txt.x = w - 10;
     this.remain_seconds_txt.y = 10;
@@ -321,7 +321,6 @@ export class Solution {
         break;
       case GameState.Running:
         this.remain_seconds_txt.visible = false;
-        this.score_txt.visible = false;
         break;
       case GameState.DrawPath:
         const all_loongs = [...this.loongs]
@@ -344,7 +343,6 @@ export class Solution {
         this.loong_interval = this.max_loong_interval;
         this.remain_mseconds = this.game_max_mseconds;
         this.remain_seconds_txt.visible = true;
-        this.score_txt.visible = true;
         this.update_game_remain_seconds();
         break;
       case GameState.DrawPath:
@@ -460,6 +458,7 @@ export class Solution {
   on_loong_hit(_loong: Loong) {
     this.score += 1;
     this.score_txt.text = '已点睛: ' + this.score;
+    this.score_txt.visible = true;
 
     if (this.black_sky) {
       const state: IKeyframe[] = [
