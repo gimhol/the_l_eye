@@ -1,9 +1,10 @@
 import { Animate } from '@leafer-in/animate';
 import '@leafer-in/motion-path';
-import { App, Group, ITextInputData, Leafer, PointerEvent, Rect, ResizeEvent, Text } from 'leafer-ui';
+import { App, Group, IKeyframe, ITextInputData, Leafer, PointerEvent, Rect, ResizeEvent, Text } from 'leafer-ui';
 import FPS from './FPS';
 import { Loong } from './Loong';
 import { Smoothing } from './Smoothing';
+import { Thunder } from './Thunder';
 
 const [_app, _leafer] = (1 ? () => {
   const app = new App({ view: window });
@@ -99,6 +100,7 @@ export class Solution {
   };
   sky: Rect | null = null;
   bottom_clouds_1 = new Group({ x: 0, y: this.height - 512 })
+  black_sky: Rect | null = null;
   bottom_clouds_anim_1: Animate | null = null;
   bottom_clouds_2 = new Group({ x: 0, y: this.height - 1024 })
   bottom_clouds_anim_2: Animate | null = null;
@@ -191,6 +193,12 @@ export class Solution {
       { x: 512 * 2, opacity: 0.25 },
       { x: 512 * 3, opacity: 0.5 }
     ], { duration: 30, loop: true, easing: 'linear' })
+    this.black_sky = new Rect({
+      width: this.leafer.width,
+      height: this.leafer.height,
+      fill: 'black',
+      opacity: 0,
+    })
     this.bottom_clouds_anim_1 = new Animate(
       this.bottom_clouds_1, [
       { x: 512 * 1, opacity: 0.9 },
@@ -204,6 +212,7 @@ export class Solution {
       { x: 512 * 3 * 1.5, opacity: 0.8 }
     ], { duration: 25, loop: true, easing: 'linear' })
     this.leafer.add(this.sky)
+    this.leafer.add(this.black_sky)
     this.leafer.add(this.bottom_clouds_2)
     this.leafer.add(this.bottom_clouds_1)
     this.leafer.add(this.top_clouds_1)
@@ -231,6 +240,10 @@ export class Solution {
       this.sky.width = w;
       this.sky.height = h;
     }
+    if (this.black_sky) {
+      this.black_sky.width = w;
+      this.black_sky.height = h;
+    }
     for (const txt of this.countdown_texts) {
       txt.x = w / 2;
       txt.y = h / 2;
@@ -239,6 +252,7 @@ export class Solution {
     this.score_txt.y = 10;
     this.remain_seconds_txt.x = w - 10;
     this.remain_seconds_txt.y = 10;
+
   }
   start() {
     this.app.on(PointerEvent.DOWN, this.on_pointer_down)
@@ -396,6 +410,23 @@ export class Solution {
     this.score += 1;
     this.score_txt.text = '已点睛: ' + this.score;
     this.score_txt.visible = true;
+
+
+    if (this.black_sky) {
+      const state: IKeyframe[] = [
+        { opacity: 1 },
+        { opacity: 0 },
+        { opacity: 0.8, fill: 'white' },
+        { opacity: 0, fill: 'black' },
+        { opacity: 1 },
+        { opacity: 1 },
+        { opacity: 1 },
+        { opacity: 0 },
+      ]
+      for (let i = 0; i < 20; i++) state.push({})
+      new Animate(this.black_sky, state, { duration: 5 })
+    }
+    new Thunder(this, _loong.head.x || 0, _loong.head.y || 0)
   }
 }
 const solution = new Solution();
