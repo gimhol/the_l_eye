@@ -245,7 +245,7 @@ export class Solution {
     this.leafer.add(this.remain_seconds_txt)
     this.leafer.add(this.btn_left_top)
     this.leafer.add(this.btn_start_game)
-    this.btn_left_top.on(PointerEvent.CLICK, (e: PointerEvent) => {
+    this.btn_left_top.on(PointerEvent.CLICK, () => {
       switch (this.game_state) {
         case GameState.DrawPath:
           this.set_game_state(GameState.Idle)
