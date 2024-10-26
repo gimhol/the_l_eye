@@ -39,6 +39,6 @@ export default {
     }),
     copy({ targets: [{ src: 'public/*', dest: 'dist/' }] }),
     livereload(),
-    serve({ contentBase: ['dist/'], port: 10086 })
+    serve({ contentBase: ['dist/'], port: 9999 })
   ]
 }
