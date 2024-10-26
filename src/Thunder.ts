@@ -7,12 +7,14 @@ export class Thunder {
     hit_x: number,
     hit_y: number
   ) {
-    const radius = Math.max(solution.width, solution.height) / 2
+    const radius = Math.sqrt(
+      solution.width * solution.width +
+      solution.height * solution.height
+    ) / 2
     const angle = Math.random() * 2 * Math.PI;
 
-
-    const start_x = radius * Math.sin(angle);
-    const start_y = radius * Math.cos(angle)
+    const start_x = solution.width / 2 + radius * Math.sin(angle);
+    const start_y = solution.height / 2 + radius * Math.cos(angle)
 
     const diff_x = hit_x - start_x;
     const diff_y = hit_y - start_y;
@@ -26,8 +28,8 @@ export class Thunder {
         x: start_x,
         y: start_y
       }, {
-        x: start_x + direction_x * 1000,
-        y: start_y + direction_y * 1000
+        x: start_x + direction_x * 3000,
+        y: start_y + direction_y * 3000
       }],
       stroke: 'white',
       strokeWidth: 8,
