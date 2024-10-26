@@ -39,7 +39,7 @@ export class Solution {
   leafer = _leafer
   update_id: number = 0;
   ups = new FPS();
-  ups_txt = new Text({ opacity: 0.1 })
+  ups_txt = new Text({ opacity: 0.5 })
   score = 0;
   score_txt = new Text({
     ...countdown_txt_style,

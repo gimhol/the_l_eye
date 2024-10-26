@@ -15,6 +15,12 @@ const line_input_data: Partial<ILineInputData> = {
   strokeCap: 'round',
   visible: false,
 }
+
+const colors: string[] = [];
+function reset_colors() {
+  colors.length = 0;
+  colors.push('red', 'green', 'brown', 'black')
+}
 export class Loong {
   z = 1;
   normal_motion_line: Line | null = null;
@@ -295,18 +301,27 @@ export class Loong {
     })
   }
   on_pointer_down_head = () => {
-    this.head.path = headWithEyePath
-    this.head.stroke = 'green'
-    this.head.fill = 'gold'
+    this.head.path = headWithEyePath;
+
+    this.head.hoverStyle = void 0
+    this.head.pressStyle = void 0
+    if (!colors.length) reset_colors();
+    const colors_length = colors.length;
+    const idx = Math.floor(Math.random() * colors_length) % colors_length;
+    const stroke = colors.splice(idx, 1)[0]
+
+    const fill = 'gold';
+    this.head.stroke = stroke
+    this.head.fill = fill
     this.bodies.forEach(v => {
-      v.stroke = 'green'
-      v.fill = 'gold'
+      v.stroke = stroke
+      v.fill = fill
     })
-    this.tail.stroke = `green`;
-    this.tail.fill = `gold`;
+    this.tail.stroke = stroke;
+    this.tail.fill = fill
     this.claws.forEach(v => {
-      v.stroke = 'green'
-      v.fill = 'gold'
+      v.stroke = stroke
+      v.fill = fill
     })
     this.solution.on_loong_hit(this)
     if (this.loop) {
