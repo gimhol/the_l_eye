@@ -61,8 +61,8 @@ export class Solution {
   })
   draw_pen: Smoothing | null = null;
   game_state: GameState = GameState.Idle;
-  max_loong_speed = 1000;
-  min_loong_speed = 300;
+  max_loong_speed = 700;
+  min_loong_speed = 200;
   loong_speed = this.min_loong_speed;
   max_loong_interval = 1000;
   min_loong_interval = 250;
