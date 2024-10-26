@@ -1,5 +1,6 @@
 import { Animate } from '@leafer-in/animate';
 import '@leafer-in/motion-path';
+import '@leafer-in/state';
 import { App, Group, IKeyframe, ITextInputData, Leafer, PointerEvent, Rect, ResizeEvent, Text } from 'leafer-ui';
 import FPS from './FPS';
 import { Loong } from './Loong';
@@ -49,7 +50,7 @@ export class Solution {
     verticalAlign: 'top',
     visible: false,
   })
-  game_max_mseconds = 60 * 1000
+  game_max_mseconds = 30 * 1000
   remain_mseconds = this.game_max_mseconds;
   remain_seconds_txt = new Text({
     ...countdown_txt_style,
@@ -62,10 +63,10 @@ export class Solution {
   draw_pen: Smoothing | null = null;
   game_state: GameState = GameState.Idle;
   max_loong_speed = 500;
-  min_loong_speed = 100;
+  min_loong_speed = 150;
   loong_speed = this.min_loong_speed;
-  max_loong_interval = 1000;
-  min_loong_interval = 500;
+  max_loong_interval = 2000;
+  min_loong_interval = 1000;
   loong_interval = this.max_loong_interval
   loong_countdown = 0;
   btn_start_game = new Text({
@@ -114,6 +115,7 @@ export class Solution {
       if (this.draw_pen.dots.length > 5) {
         const loong = new Loong(this);
         loong.loop = true;
+        loong.speed = 50;
         loong.read_smoothing_to_normal(this.draw_pen)
         this.loongs.push(loong);
       }
@@ -300,13 +302,7 @@ export class Solution {
     this.app.on(PointerEvent.MOVE, this.on_pointer_move)
     this.app.on(PointerEvent.UP, this.on_pointer_up)
     this.app.on(ResizeEvent.RESIZE, this.on_resize)
-    let prev_time = Date.now();
-    setInterval(() => {
-      const curr_time = Date.now();
-      this.update(curr_time - prev_time);
-      prev_time = curr_time;
-    }, 1000 / 60)
-    // this.update_id = Render.add(this.update)
+    setInterval(() => this.update(1000 / 30), 1000 / 30)
   }
   stop() {
     this.app.off(PointerEvent.DOWN, this.on_pointer_down)
@@ -316,7 +312,7 @@ export class Solution {
     clearInterval(this.update_id)
   }
   update_game_remain_seconds() {
-    this.remain_seconds_txt.text = `倒计时: ${(this.remain_mseconds / 1000).toFixed(0)}秒`;;
+    this.remain_seconds_txt.text = `点击龙头！    倒计时: ${(this.remain_mseconds / 1000).toFixed(0)}秒`;;
   }
   set_game_state(state: GameState) {
     switch (this.game_state) {
@@ -325,6 +321,7 @@ export class Solution {
         break;
       case GameState.Running:
         this.remain_seconds_txt.visible = false;
+        this.score_txt.visible = false;
         break;
       case GameState.DrawPath:
         const all_loongs = [...this.loongs]
@@ -347,6 +344,7 @@ export class Solution {
         this.loong_interval = this.max_loong_interval;
         this.remain_mseconds = this.game_max_mseconds;
         this.remain_seconds_txt.visible = true;
+        this.score_txt.visible = true;
         this.update_game_remain_seconds();
         break;
       case GameState.DrawPath:
@@ -364,7 +362,6 @@ export class Solution {
       case GameState.Idle: break;
       case GameState.Running:
         this.loong_countdown -= dt;
-
         if (this.loong_countdown <= 0) {
           this.loong_countdown = this.loong_interval;
 
@@ -388,7 +385,6 @@ export class Solution {
         this.loong_speed = Math.min(this.max_loong_speed, this.loong_speed)
         this.loong_interval -= (this.max_loong_interval - this.min_loong_interval) / 15000 * dt;
         this.loong_interval = Math.max(this.min_loong_interval, this.loong_interval)
-
         this.remain_mseconds -= dt;
         this.update_game_remain_seconds();
         if (this.remain_mseconds <= 0)
@@ -464,8 +460,6 @@ export class Solution {
   on_loong_hit(_loong: Loong) {
     this.score += 1;
     this.score_txt.text = '已点睛: ' + this.score;
-    this.score_txt.visible = true;
-
 
     if (this.black_sky) {
       const state: IKeyframe[] = [

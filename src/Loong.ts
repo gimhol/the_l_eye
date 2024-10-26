@@ -1,6 +1,7 @@
-import { ILineInputData, Line, PointerEvent, Rect } from "leafer-ui";
+import { ILineInputData, IRotationPointData, Line, PointerEvent, Rect, UI } from "leafer-ui";
 import { type Solution } from "src";
 import { Smoothing } from "./Smoothing";
+import { bodyPath, clawLeftPath, clawRightPath, headPath, headWithEyePath, tailPath } from "./Svg";
 enum LoongState {
   Idle = 0,
   Moving = 1,
@@ -26,22 +27,65 @@ export class Loong {
   loop = false;
   head = new Rect({
     x: -1000, y: -1000,
-    scale: 0.5, around: 'center', fill: {
-      type: 'image',
-      url: '/image/loong_head_1.png',
-    }
+    path: headPath,
+    around: 'center',
+    fill: 'lightgray',
+    stroke: 'gray',
+    scaleY: 2,
+    scaleX: 2,
+    strokeWidth: 1,
+    hoverStyle: { fill: 'white' },
+    pressStyle: { fill: 'black' },
   })
   claws = [
-    new Rect({ x: -1000, y: -1000, width: 20, height: 40, around: 'bottom', fill: 'black' }),
-    new Rect({ x: -1000, y: -1000, width: 20, height: 40, around: 'top', fill: 'gray' }),
-    new Rect({ x: -1000, y: -1000, width: 20, height: 40, around: 'bottom', fill: 'black' }),
-    new Rect({ x: -1000, y: -1000, width: 20, height: 40, around: 'top', fill: 'gray' })
+    new Rect({
+      path: clawLeftPath, x: -1000, y: -1000, around: 'center',
+      fill: 'lightgray',
+      stroke: 'gray',
+      scaleY: 2,
+      scaleX: 2,
+      strokeWidth: 1,
+    }),
+    new Rect({
+      path: clawRightPath, x: -1000, y: -1000, around: 'center',
+      fill: 'lightgray',
+      stroke: 'gray',
+      scaleY: 2,
+      scaleX: 2,
+      strokeWidth: 1,
+    }),
+    new Rect({
+      path: clawLeftPath, x: -1000, y: -1000, around: 'center',
+      fill: 'lightgray',
+      stroke: 'gray',
+      scaleY: 2,
+      scaleX: 2,
+      strokeWidth: 1,
+    }),
+    new Rect({
+      path: clawRightPath, x: -1000, y: -1000, around: 'center',
+      fill: 'lightgray',
+      stroke: 'gray',
+      scaleY: 2,
+      scaleX: 2,
+      strokeWidth: 1,
+    })
   ]
   bodies: Rect[] = []
-  tail = new Rect({ x: -1000, y: -1000, width: 20, height: 20, around: 'center', fill: 'red' })
+  tail = new Rect({
+    path: tailPath, x: -1000, y: -1000, around: 'center',
+    fill: 'lightgray',
+    stroke: 'gray',
+    scaleX: 2,
+    scaleY: 2,
+    strokeWidth: 1,
+  })
   solution: Solution;
   state = LoongState.Moving;
   next_state = LoongState.Moving;
+  bodies_length: number;
+  claw_pos_a: number;
+  claw_pos_b: number;
   set_normal_motion_line(...args: ConstructorParameters<typeof Line>) {
     if (this.normal_motion_line)
       this.solution.leafer.remove(this.normal_motion_line);
@@ -73,9 +117,23 @@ export class Loong {
   }
   constructor(solution: Solution) {
     this.solution = solution;
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 16; i++) {
+      let scale = 1
+      if (i < 5)
+        scale -= (10 - i) / 30
+      else if (i > 10)
+        scale -= (i - 10) / 30
       this.bodies.push(
-        new Rect({ x: -1000, y: -1000, width: 20, height: 20, around: 'center', fill: 'blue' })
+        new Rect({
+          path: bodyPath,
+          scaleY: scale * 2,
+          scaleX: scale * 3,
+          x: -1000, y: -1000,
+          around: 'center',
+          fill: 'lightgray',
+          stroke: 'gray',
+          strokeWidth: 0.5,
+        })
       )
     }
     solution.leafer.add(this.bodies);
@@ -83,6 +141,9 @@ export class Loong {
     solution.leafer.add(this.tail);
     solution.leafer.add(this.head);
     this.head.on(PointerEvent.BEFORE_DOWN, this.on_pointer_down_head)
+    this.bodies_length = this.bodies.length;
+    this.claw_pos_a = Math.floor(this.bodies_length / 4);
+    this.claw_pos_b = Math.floor(3 * this.bodies_length / 4);
   }
   remove_self() {
     for (const i of this.bodies) {
@@ -94,6 +155,7 @@ export class Loong {
     this.solution.leafer.remove(this.tail);
     this.solution.leafer.remove(this.head);
     this.head.off(PointerEvent.BEFORE_DOWN, this.on_pointer_down_head)
+
     this.solution.loongs = this.solution.loongs.filter(v => v !== this)
     if (this.normal_motion_line)
       this.solution.leafer.remove(this.normal_motion_line);
@@ -143,44 +205,39 @@ export class Loong {
     }
     return dst;
   }
+
+
+  update_ui_pos(ui: UI, point: IRotationPointData, rotate: number = 0) {
+    if (Number.isNaN(point.x) || Number.isNaN(point.y)) return false;
+    const old = ui.scaleY || 0;
+    if (point.rotation < -90 || point.rotation > 90) {
+      if (old > 0) { ui.scaleY = -1 * old; }
+    } else {
+      if (old < 0) ui.scaleY = -1 * old;
+    }
+    ui.set({ ...point, rotation: point.rotation + rotate })
+    return true
+  }
   fly_to(to: number): void {
-    const { head, bodies, tail, claws } = this
     let point = this.get_motion_point(to);
-    if (!Number.isNaN(point.x) && !Number.isNaN(point.y)) {
-      if (point.rotation < -90 || point.rotation > 90) {
-        head.scaleY = -0.5
-      } else {
-        head.scaleY = 0.5;
-      }
-      head.set(point)
-    }
+    this.update_ui_pos(this.head, point)
     to = this.calc_length_offset(to, -30)
-    const claw_pos_a = Math.floor(bodies.length / 4);
-    const claw_pos_b = Math.floor(3 * bodies.length / 4);
-    for (let idx = 0; idx < bodies.length; idx++) {
-      const body = bodies[idx];
+    for (let idx = 0; idx < this.bodies_length; idx++) {
+      const body = this.bodies[idx];
       point = this.get_motion_point(to)
-      if (!Number.isNaN(point.x) && !Number.isNaN(point.y)) {
-        body.set(point)
-        to = this.calc_length_offset(to, -25)
-        if (idx === claw_pos_a) {
-          claws[0].set(point)
-          claws[1].set(point)
-          claws[0].rotation = (claws[0].rotation || 0) - 30
-          claws[1].rotation = (claws[1].rotation || 0) + 30
+      if (this.update_ui_pos(body, point)) {
+        to = this.calc_length_offset(to, -50)
+        if (idx === this.claw_pos_a) {
+          this.update_ui_pos(this.claws[0], point, -30)
+          this.update_ui_pos(this.claws[1], point, 30)
         }
-        if (idx === claw_pos_b) {
-          claws[2].set(point)
-          claws[3].set(point)
-          claws[2].rotation = (claws[2].rotation || 0) - 30
-          claws[3].rotation = (claws[3].rotation || 0) + 30
+        if (idx === this.claw_pos_b) {
+          this.update_ui_pos(this.claws[2], point, -30)
+          this.update_ui_pos(this.claws[3], point, 30)
         }
       }
     }
-    point = this.get_motion_point(to)
-    if (!Number.isNaN(point.x) && !Number.isNaN(point.y)) {
-      tail.set(point)
-    }
+    this.update_ui_pos(this.tail, this.get_motion_point(to))
   }
   update(dt: number) {
     if (this.next_state !== this.state) {
@@ -219,10 +276,6 @@ export class Loong {
   }
   leave() {
     this.stop_at_progress = this.motion_progress;
-    this.head.fill = {
-      type: 'image',
-      url: '/image/loong_head.png'
-    }
     this.state = LoongState.Leaving;
     const smoothing = new Smoothing();
     let y = this.head.y || 0;
@@ -240,10 +293,26 @@ export class Loong {
       ...line_input_data,
       path: smoothing.pen.path
     })
-    this.solution.on_loong_hit(this)
   }
   on_pointer_down_head = () => {
-    if (this.loop) return;
+    this.head.path = headWithEyePath
+    this.head.stroke = 'green'
+    this.head.fill = 'gold'
+    this.bodies.forEach(v => {
+      v.stroke = 'green'
+      v.fill = 'gold'
+    })
+    this.tail.stroke = `green`;
+    this.tail.fill = `gold`;
+    this.claws.forEach(v => {
+      v.stroke = 'green'
+      v.fill = 'gold'
+    })
+    this.solution.on_loong_hit(this)
+    if (this.loop) {
+      this.speed = 500;
+      return;
+    }
     if (this.state === LoongState.Moving)
       this.next_state = LoongState.Leaving
   }
