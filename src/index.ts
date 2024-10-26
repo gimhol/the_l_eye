@@ -68,6 +68,28 @@ export class Solution {
   min_loong_interval = 500;
   loong_interval = this.max_loong_interval
   loong_countdown = 0;
+  btn_start_game = new Text({
+    ...countdown_txt_style,
+    opacity: 1,
+    fontSize: 36,
+    textAlign: 'center',
+    verticalAlign: 'middle',
+    x: 10,
+    y: 10,
+    text: "开始游戏",
+    hoverStyle: { scale: 1.2 }
+  })
+  btn_left_top = new Text({
+    ...countdown_txt_style,
+    opacity: 1,
+    fontSize: 36,
+    textAlign: 'center',
+    verticalAlign: 'middle',
+    x: 10,
+    y: 10,
+    text: "画路径",
+    hoverStyle: { scale: 1.2 },
+  })
   on_pointer_down_lb_map: { [x in GameState]?: (e: PointerEvent) => void } = {
     [GameState.DrawPath]: (e: PointerEvent) => {
       this.draw_pen = new Smoothing
@@ -75,7 +97,7 @@ export class Solution {
       this.draw_pen.add_dot(e.x, e.y);
     },
     [GameState.Idle]: () => {
-      this.countdown();
+      // this.countdown();
     },
     [GameState.Running]: void 0,
   }
@@ -91,6 +113,7 @@ export class Solution {
       this.draw_pen.add_dot(e.x, e.y);
       if (this.draw_pen.dots.length > 5) {
         const loong = new Loong(this);
+        loong.loop = true;
         loong.read_smoothing_to_normal(this.draw_pen)
         this.loongs.push(loong);
       }
@@ -220,6 +243,21 @@ export class Solution {
     this.leafer.add(this.countdown_texts);
     this.leafer.add(this.score_txt)
     this.leafer.add(this.remain_seconds_txt)
+    this.leafer.add(this.btn_left_top)
+    this.leafer.add(this.btn_start_game)
+    this.btn_left_top.on(PointerEvent.CLICK, (e: PointerEvent) => {
+      switch (this.game_state) {
+        case GameState.DrawPath:
+          this.set_game_state(GameState.Idle)
+          break;
+        case GameState.Idle:
+          this.set_game_state(GameState.DrawPath)
+          break;
+      }
+    })
+    this.btn_start_game.on(PointerEvent.CLICK, () => {
+      this.countdown()
+    })
     this.on_resize()
   }
   on_resize = () => {
@@ -248,10 +286,13 @@ export class Solution {
       txt.x = w / 2;
       txt.y = h / 2;
     }
+    this.btn_start_game.x = w / 2;
+    this.btn_start_game.y = h / 2;
     this.score_txt.x = 10;
     this.score_txt.y = 10;
     this.remain_seconds_txt.x = w - 10;
     this.remain_seconds_txt.y = 10;
+
 
   }
   start() {
@@ -279,16 +320,28 @@ export class Solution {
   }
   set_game_state(state: GameState) {
     switch (this.game_state) {
-      case GameState.Idle: break;
+      case GameState.Idle:
+        this.leafer.remove(this.btn_start_game)
+        break;
       case GameState.Running:
         this.remain_seconds_txt.visible = false;
         break;
-      case GameState.DrawPath: break;
+      case GameState.DrawPath:
+        const all_loongs = [...this.loongs]
+        all_loongs.map(v => v.remove_self())
+        break;
     }
     this.game_state = state;
     switch (this.game_state) {
       case GameState.Idle:
+        this.btn_left_top.text = "画路径"
+        this.leafer.add(this.btn_start_game)
+        this.leafer.add(this.btn_left_top)
         break;
+      case GameState.Countdown:
+        this.leafer.remove(this.btn_start_game)
+        this.leafer.remove(this.btn_left_top)
+        break
       case GameState.Running:
         this.loong_countdown = 0;
         this.loong_interval = this.max_loong_interval;
@@ -296,7 +349,9 @@ export class Solution {
         this.remain_seconds_txt.visible = true;
         this.update_game_remain_seconds();
         break;
-      case GameState.DrawPath: break;
+      case GameState.DrawPath:
+        this.btn_left_top.text = "游戏模式";
+        break;
     }
   }
   update = (dt: number) => {

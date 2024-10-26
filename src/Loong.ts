@@ -243,6 +243,7 @@ export class Loong {
     this.solution.on_loong_hit(this)
   }
   on_pointer_down_head = () => {
+    if (this.loop) return;
     if (this.state === LoongState.Moving)
       this.next_state = LoongState.Leaving
   }
