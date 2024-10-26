@@ -61,11 +61,11 @@ export class Solution {
   })
   draw_pen: Smoothing | null = null;
   game_state: GameState = GameState.Idle;
-  max_loong_speed = 700;
-  min_loong_speed = 200;
+  max_loong_speed = 500;
+  min_loong_speed = 100;
   loong_speed = this.min_loong_speed;
   max_loong_interval = 1000;
-  min_loong_interval = 250;
+  min_loong_interval = 500;
   loong_interval = this.max_loong_interval
   loong_countdown = 0;
   on_pointer_down_lb_map: { [x in GameState]?: (e: PointerEvent) => void } = {

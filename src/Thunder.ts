@@ -10,11 +10,12 @@ export class Thunder {
     const radius = Math.sqrt(
       solution.width * solution.width +
       solution.height * solution.height
-    ) / 2
-    const angle = Math.random() * 2 * Math.PI;
+    ) / 2;
+    const move_angle = Math.random() * 2 * Math.PI;
+    const offset_angle = move_angle + Math.PI / 2;
 
-    const start_x = solution.width / 2 + radius * Math.sin(angle);
-    const start_y = solution.height / 2 + radius * Math.cos(angle)
+    const start_x = solution.width / 2 + radius * Math.sin(move_angle);
+    const start_y = solution.height / 2 + radius * Math.cos(move_angle)
 
     const diff_x = hit_x - start_x;
     const diff_y = hit_y - start_y;
@@ -23,27 +24,37 @@ export class Thunder {
     const direction_x = diff_x / diff_l;
     const direction_y = diff_y / diff_l;
 
+    const points = [{
+      x: start_x,
+      y: start_y
+    }]
+    let x = start_x;
+    let y = start_y;
+    let i = 0;
+    while ((++i) < 40) {
+      x += direction_x * 50
+      y += direction_y * 50
+      const l = Math.random() * 100;
+      points.push({
+        x: x + l * Math.cos(offset_angle),
+        y: y + l * Math.sin(offset_angle)
+      })
+    }
     const line = new Line({
-      points: [{
-        x: start_x,
-        y: start_y
-      }, {
-        x: start_x + direction_x * 3000,
-        y: start_y + direction_y * 3000
-      }],
+      points,
       stroke: 'white',
       strokeWidth: 8,
     })
     solution.leafer.add(line)
     const anim_keys: IKeyframe[] = [
-      { opacity: 1 },
-      { opacity: 0 },
-      { opacity: 0.8 },
-      { opacity: 0 },
-      { opacity: 1 },
-      { opacity: 1 },
-      { opacity: 0 },
-      { opacity: 0 },
+      { opacity: 1, stroke: 'white' },
+      { opacity: 0, stroke: 'yellow' },
+      { opacity: 0.8, stroke: 'white' },
+      { opacity: 0, stroke: 'yellow' },
+      { opacity: 1, stroke: 'white' },
+      { opacity: 1, stroke: 'white' },
+      { opacity: 0, stroke: 'yellow' },
+      { opacity: 0, stroke: 'yellow' },
     ]
     for (let i = 0; i < 20; i++) anim_keys.push({})
     new Animate(line, anim_keys, { duration: 5 })
